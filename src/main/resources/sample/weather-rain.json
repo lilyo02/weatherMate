@@ -1,0 +1,17 @@
+{
+  "location": { "lat": 35.1796, "lon": 129.0756, "name": "Busan" },
+  "current":  { "temp": 22.0, "clouds": 100, "icon": "10d", "desc": "rain" },
+  "today":    { "min": 20.0, "max": 24.0 },
+  "hourly":   [
+    { "time": "09:00", "temp": 21.5, "icon": "10d", "pop": 0.60 },
+    { "time": "12:00", "temp": 22.0, "icon": "10d", "pop": 0.70 },
+    { "time": "15:00", "temp": 22.3, "icon": "10d", "pop": 0.80 },
+    { "time": "18:00", "temp": 21.8, "icon": "10n", "pop": 0.70 }
+  ],
+  "daily": [
+    { "dow": "Tue", "min": 20.0, "max": 24.0, "pop": 0.80, "icon": "10d" },
+    { "dow": "Wed", "min": 19.0, "max": 23.0, "pop": 0.60, "icon": "10d" },
+    { "dow": "Thu", "min": 20.0, "max": 24.0, "pop": 0.50, "icon": "10d" }
+  ],
+  "updatedAt": "2025-09-23T13:05:00+09:00"
+}
