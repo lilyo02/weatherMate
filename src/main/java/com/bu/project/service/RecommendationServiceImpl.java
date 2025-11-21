@@ -1,5 +1,3 @@
-// com.bu.project.service.RecommendationServiceImpl.java
-
 package com.bu.project.service;
 
 import org.springframework.stereotype.Service;
@@ -11,61 +9,79 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public String getRecommendation(WeatherDto weatherData) {
-        double currentTemp = weatherData.getCurrentTemp();
+
+        // ---------------------------
+        // 1) 날씨 관련 데이터 가져오기
+        // ---------------------------
+        double currentFeel = weatherData.getCurrentFeelsLike();
+        double minFeel = weatherData.getMinFeelsLike();     // 오늘 최저 체감
+        double maxFeel = weatherData.getMaxFeelsLike();     // 오늘 최고 체감
+        double pop = weatherData.getCurrentPop();
         String description = weatherData.getDescription();
-        double currentPop = weatherData.getCurrentPop();
-        String recommendation = "";
 
-        // -----------------------------------------------------------------
-        // [1. 날씨 상태에 따른 추천]
-        // -----------------------------------------------------------------
-        if (description.contains("비") || description.contains("소나기") || currentPop > 0.5) {
-            recommendation = "☔ 비 소식이 있어요. 우산을 꼭 챙기세요! ";
+        StringBuilder rec = new StringBuilder();
+
+        // ---------------------------
+        // 2) 기본 날씨 설명 문장
+        // ---------------------------
+        if (description.contains("비") || description.contains("소나기") || pop > 0.5) {
+            rec.append("☔ 비 소식이 있어요. 우산을 꼭 챙기세요! ");
         } else if (description.contains("맑음")) {
-            recommendation = "☀️ 맑고 화창한 날씨입니다! ";
+            rec.append("☀️ 맑고 화창한 날씨입니다! ");
         } else if (description.contains("흐림") || description.contains("구름")) {
-            recommendation = "☁️ 구름이 많아요. 일교차에 대비하세요. ";
+            rec.append("☁️ 구름이 많아요. 일교차에 대비하세요. ");
         } else {
-            recommendation = "오늘 날씨는 " + description + "입니다. ";
+            rec.append("오늘 날씨는 ").append(description).append("입니다. ");
         }
 
-        // -----------------------------------------------------------------
-        // [2. 기온에 따른 옷차림 추천] (새로운 차트 기준 적용)
-        // -----------------------------------------------------------------
-        String clothesRecommendation;
-        
-        if (currentTemp >= 28) { // ~28°C
-            clothesRecommendation = "민소매, 반팔, 반바지, 원피스로 시원하게 입으세요.";
-        } else if (currentTemp >= 23) { // 27°C ~ 23°C
-            clothesRecommendation = "반팔, 얇은 셔츠, 반바지, 면바지가 적당해요.";
-        } else if (currentTemp >= 20) { // 22°C ~ 20°C
-            clothesRecommendation = "얇은 가디건, 긴팔, 면바지, 청치마 등 가벼운 겉옷을 준비하세요.";
-        } else if (currentTemp >= 17) { // 19°C ~ 17°C
-            clothesRecommendation = "얇은 니트, 맨투맨, 가디건, 청재킷으로 쌀쌀함을 대비하세요.";
-        } else if (currentTemp >= 12) { // 16°C ~ 12°C
-            clothesRecommendation = "자켓, 가디건, 야상, 스타킹, 청바지 등 보온에 신경쓰세요.";
-        } else if (currentTemp >= 9) { // 11°C ~ 9°C
-            clothesRecommendation = "트렌치코트, 야상, 니트, 청재킷 등 따뜻하게 껴입으세요.";
-        } else if (currentTemp >= 5) { // 8°C ~ 5°C
-            clothesRecommendation = "코트, 가죽자켓, 히트텍, 니트 등 방한 복장이 필요합니다.";
-        } else { // 4°C 이하
-            clothesRecommendation = "패딩, 두꺼운 코트, 목도리, 기모 제품 등 최대한 따뜻하게 무장하세요!";
+        // ---------------------------
+        // 3) 옷차림 추천 (체감온도 기반)
+        // ---------------------------
+        String clothes;
+
+        // A. 최저 체감온도(보온 레벨 결정)
+        if (minFeel <= 0) {
+            clothes = "아침·저녁은 매우 춥습니다. 두꺼운 패딩, 니트, 목도리를 꼭 챙기세요.";
+        } else if (minFeel <= 5) {
+            clothes = "아침·저녁은 겨울처럼 춥습니다. 두꺼운 긴팔에 패딩이나 두꺼운 코트를 추천해요.";
+        } else if (minFeel <= 10) {
+            clothes = "쌀쌀한 날씨입니다. 긴팔 상의에 경량 패딩이나 코트를 걸치면 좋아요.";
+        } else if (minFeel <= 15) {
+            clothes = "선선한 날씨입니다. 가벼운 자켓이나 얇은 니트 정도가 적당해요.";
+        } else {
+            clothes = "온화한 날씨입니다. 가벼운 옷차림도 괜찮아요.";
         }
-        
-        recommendation += clothesRecommendation; // 기존 추천 문구에 옷차림 추가
-        
-        // -----------------------------------------------------------------
-        // [3. 미세먼지 상태에 따른 추가 추천] (기존 로직 유지)
-        // -----------------------------------------------------------------
+
+        rec.append(" ").append(clothes);
+
+        // B. 낮 시간대 안내 (최고 체감온도)
+        if (maxFeel >= 18) {
+            rec.append(" 한낮에는 꽤 따뜻해져서 겉옷을 벗어도 되는 정도예요.");
+        } else if (maxFeel >= 12) {
+            rec.append(" 한낮에는 아침보다는 조금 더 포근해져요.");
+        } else {
+            rec.append(" 한낮에도 크게 따뜻해지지 않아 하루 종일 겉옷이 필요합니다.");
+        }
+
+        // C. 일교차(레이어링 여부)
+        double gap = maxFeel - minFeel;
+        if (gap >= 8) {
+            rec.append(" 일교차가 큰 날이라 겹쳐 입기 좋은 옷차림을 추천해요.");
+        }
+
+        // ---------------------------
+        // 4) 미세먼지 추가 문장
+        // ---------------------------
         if (weatherData.getAirPollution() != null) {
-            String airGrade = weatherData.getAirPollution().getGrade();
-            if (airGrade.equals("나쁨") || airGrade.equals("매우 나쁨")) {
-                recommendation += " 🚨 미세먼지가 높으니 KF94 마스크 착용과 외출 자제가 필요합니다.";
-            } else if (airGrade.equals("좋음")) {
-                 recommendation += " ✨ 공기가 깨끗합니다! 마스크 없이 상쾌하게 산책하기 좋아요.";
+            String grade = weatherData.getAirPollution().getGrade();
+
+            if (grade.equals("나쁨") || grade.equals("매우 나쁨")) {
+                rec.append(" 🚨 미세먼지가 높으니 KF94 마스크 착용을 추천합니다.");
+            } else if (grade.equals("좋음")) {
+                rec.append(" ✨ 공기가 깨끗해 상쾌하게 산책하기 좋아요.");
             }
         }
-        
-        return recommendation.trim();
+
+        return rec.toString().trim();
     }
 }
