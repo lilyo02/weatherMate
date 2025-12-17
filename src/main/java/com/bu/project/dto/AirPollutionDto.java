@@ -3,7 +3,7 @@ package com.bu.project.dto;
 public class AirPollutionDto {
 	private double pm25;
     private double pm10;
-    private String grade; // "좋음", "보통" 등으로 변환한 등급
+    private String grade; // 미세먼지 등급
     
 	public double getPm25() {
 		return pm25;

@@ -10,20 +10,16 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Override
     public String getRecommendation(WeatherDto weatherData) {
 
-        // ---------------------------
-        // 1) 날씨 관련 데이터 가져오기
-        // ---------------------------
+        // 체감온도 및 날씨 정보
         double currentFeel = weatherData.getCurrentFeelsLike();
-        double minFeel = weatherData.getMinFeelsLike();     // 오늘 최저 체감
-        double maxFeel = weatherData.getMaxFeelsLike();     // 오늘 최고 체감
+        double minFeel = weatherData.getMinFeelsLike();
+        double maxFeel = weatherData.getMaxFeelsLike();
         double pop = weatherData.getCurrentPop();
         String description = weatherData.getDescription();
 
         StringBuilder rec = new StringBuilder();
 
-        // ---------------------------
-        // 2) 기본 날씨 설명 문장
-        // ---------------------------
+        // 기본 날씨 설명 문장
         if (description.contains("비") || description.contains("소나기") || pop > 0.5) {
             rec.append("☔ 비 소식이 있어요. 우산을 꼭 챙기세요! ");
         } else if (description.contains("맑음")) {
@@ -34,12 +30,9 @@ public class RecommendationServiceImpl implements RecommendationService {
             rec.append("오늘 날씨는 ").append(description).append("입니다. ");
         }
 
-        // ---------------------------
-        // 3) 옷차림 추천 (체감온도 기반)
-        // ---------------------------
+        // 옷차림 추천 (최저 체감온도 기반)
         String clothes;
 
-        // A. 최저 체감온도(보온 레벨 결정)
         if (minFeel <= 0) {
             clothes = "아침·저녁은 매우 춥습니다. 두꺼운 패딩, 니트, 목도리를 꼭 챙기세요.";
         } else if (minFeel <= 5) {
@@ -54,7 +47,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
         rec.append(" ").append(clothes);
 
-        // B. 낮 시간대 안내 (최고 체감온도)
+        // 낮 시간대 체감온도 반영
         if (maxFeel >= 18) {
             rec.append(" 한낮에는 꽤 따뜻해져서 겉옷을 벗어도 되는 정도예요.");
         } else if (maxFeel >= 12) {
@@ -63,15 +56,13 @@ public class RecommendationServiceImpl implements RecommendationService {
             rec.append(" 한낮에도 크게 따뜻해지지 않아 하루 종일 겉옷이 필요합니다.");
         }
 
-        // C. 일교차(레이어링 여부)
+        // 일교차 반영
         double gap = maxFeel - minFeel;
         if (gap >= 8) {
             rec.append(" 일교차가 큰 날이라 겹쳐 입기 좋은 옷차림을 추천해요.");
         }
 
-        // ---------------------------
-        // 4) 미세먼지 추가 문장
-        // ---------------------------
+        // 미세먼지 정보
         if (weatherData.getAirPollution() != null) {
             String grade = weatherData.getAirPollution().getGrade();
 

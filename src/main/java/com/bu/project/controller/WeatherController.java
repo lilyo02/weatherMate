@@ -16,17 +16,12 @@ public class WeatherController {
         this.weatherService = weatherService;
     }
 
-    //@GetMapping("/weather")
-    //public WeatherDto getWeather(@RequestParam("city") String city) {
-    //    return weatherService.getWeatherData(city);
-    //}
-    
+    // 날씨 정보 조회 API
     @GetMapping("/weather")
     public WeatherDto getWeather(
         @RequestParam("lat") double lat, 
         @RequestParam("lon") double lon) {
         
-        // 💡 서비스 메서드 호출 파라미터도 변경
         return weatherService.getWeatherData(lat, lon); 
     }
 }

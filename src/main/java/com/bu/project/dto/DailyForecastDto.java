@@ -1,7 +1,7 @@
 package com.bu.project.dto;
 
 public class DailyForecastDto {
-	private String dayOfWeek; // 요일 (예: Tue, Wed)
+	private String dayOfWeek; // 요일
     private double minTemp;
     private double maxTemp;
     private double pop; // 강수 확률

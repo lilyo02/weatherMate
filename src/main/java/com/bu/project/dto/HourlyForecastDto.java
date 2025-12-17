@@ -1,7 +1,7 @@
 package com.bu.project.dto;
 
 public class HourlyForecastDto {
-	private String time; // 시간 (예: 1PM)
+	private String time; // 시간
     private String icon; // 날씨 아이콘
     private double temp;
     private double pop; // 강수 확률

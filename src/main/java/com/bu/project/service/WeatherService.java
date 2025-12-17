@@ -33,16 +33,14 @@ public class WeatherService {
         this.recommendationService = recommendationService;
     }
 
-    //    @Cacheable(value = "weatherCache", key = "#lat + '-' + #lon")
+    // 날씨 데이터 조회
     public WeatherDto getWeatherData(double lat, double lon) {
 
         ObjectMapper objectMapper = new ObjectMapper();
-        String city = "위치 정보 없음"; // 기본 도시 이름 설정
+        String city = "위치 정보 없음";
 
         try {
-            // ----------------------------------------------------
-            // 1. 역지오코딩 API 호출 및 도시 이름 파싱
-            // ----------------------------------------------------
+            // 도시 이름 조회
             String geoJson = openWeatherClient.getCityNameByCoordinates(lat, lon);
             JsonNode geoNode = objectMapper.readTree(geoJson);
 
@@ -59,9 +57,7 @@ public class WeatherService {
                 System.err.println("Reverse GeoCoding failed for: " + lat + ", " + lon);
             }
 
-            // ----------------------------------------------------
-            // 2. 날씨 API 호출
-            // ----------------------------------------------------
+            // 날씨 API 호출
             String currentJson = openWeatherClient.getCurrentWeather(lat, lon);
             String airPollutionJson = openWeatherClient.getAirPollution(lat, lon);
             String forecastJson = openWeatherClient.getFiveDayForecast(lat, lon);
@@ -69,7 +65,7 @@ public class WeatherService {
             WeatherDto weatherDto = new WeatherDto();
             weatherDto.setCityName(city);
 
-            // --- 3. 현재 날씨 파싱 ---
+            // 현재 날씨 파싱
             JsonNode currentNode = objectMapper.readTree(currentJson);
             double currentTemp = currentNode.get("main").get("temp").asDouble();
             double currentFeelsLike = currentNode.get("main").get("feels_like").asDouble(); // ✅ 체감온도
@@ -78,7 +74,7 @@ public class WeatherService {
             weatherDto.setCurrentFeelsLike(currentFeelsLike); // ✅ 추가
             weatherDto.setDescription(currentNode.get("weather").get(0).get("description").asText());
 
-            // --- 4. 예보 파싱 및 계산 (Hourly, Daily) ---
+            // 예보 데이터 파싱
             JsonNode forecastNode = objectMapper.readTree(forecastJson);
             JsonNode listNode = forecastNode.get("list");
 
@@ -86,7 +82,6 @@ public class WeatherService {
             DateTimeFormatter dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
             DateTimeFormatter hourMinuteFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
-            // listNode의 첫 번째 항목(가장 가까운 미래 시점의 예보)에서 강수 확률 가져오기
             if (listNode.size() > 0 && listNode.get(0).has("pop")) {
                 double popValue = listNode.get(0).get("pop").asDouble();
                 weatherDto.setCurrentPop(popValue);
@@ -96,11 +91,10 @@ public class WeatherService {
             List<HourlyForecastDto> hourlyForecasts = new ArrayList<>();
             List<DailyForecastDto> dailyForecasts = new ArrayList<>();
 
-            // ✅ 하루 전체 기준 최저/최고 체감온도 계산용 변수
+            // 체감온도 범위 계산
             double minFeelsLike = Double.POSITIVE_INFINITY;
             double maxFeelsLike = Double.NEGATIVE_INFINITY;
 
-            // 40개 전체 예보 데이터를 순회
             for (int i = 0; i < listNode.size(); i++) {
                 JsonNode item = listNode.get(i);
                 String dateTimeString = item.get("dt_txt").asText();
@@ -109,7 +103,6 @@ public class WeatherService {
                 double feelsLike = item.get("main").get("feels_like").asDouble(); // ✅ 체감온도
                 double popValue = item.get("pop").asDouble();
 
-                // ✅ 전체 예보 중 최저/최고 체감온도 갱신
                 if (feelsLike < minFeelsLike) {
                     minFeelsLike = feelsLike;
                 }
@@ -117,12 +110,11 @@ public class WeatherService {
                     maxFeelsLike = feelsLike;
                 }
 
-                // UTC → KST 변환
                 LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, apiDateFormatter);
                 ZonedDateTime utcTime = localDateTime.atZone(ZoneId.of("UTC"));
                 ZonedDateTime koreaTime = utcTime.withZoneSameInstant(ZoneId.of("Asia/Seoul"));
 
-                // A. 시간별 예보 저장 (첫 8개 항목만 사용)
+                // 시간별 예보
                 if (i < 8) {
                     HourlyForecastDto dto = new HourlyForecastDto();
                     dto.setTime(koreaTime.format(hourMinuteFormatter));
@@ -134,7 +126,7 @@ public class WeatherService {
                     hourlyForecasts.add(dto);
                 }
 
-                // B. 일별 최고/최저 기온 계산 (현재는 실제 온도 기준 유지)
+                // 일별 예보
                 String dateKey = koreaTime.toLocalDate().toString();
 
                 if (!dailyMap.containsKey(dateKey)) {
@@ -162,13 +154,12 @@ public class WeatherService {
             dailyForecasts.addAll(dailyMap.values());
             weatherDto.setDailyForecasts(dailyForecasts);
 
-            // ✅ 계산된 최저/최고 체감온도 WeatherDto에 저장
             if (minFeelsLike != Double.POSITIVE_INFINITY) {
                 weatherDto.setMinFeelsLike(minFeelsLike);
                 weatherDto.setMaxFeelsLike(maxFeelsLike);
             }
 
-            // --- 5. 미세먼지 파싱 ---
+            // 미세먼지 정보 파싱
             JsonNode airPollutionNode = objectMapper.readTree(airPollutionJson);
             JsonNode components = airPollutionNode.get("list").get(0).get("components");
 
@@ -192,8 +183,7 @@ public class WeatherService {
             pollutionDto.setGrade(grade);
             weatherDto.setAirPollution(pollutionDto);
 
-            // ✅ 이제 RecommendationService에서 temp 대신
-            //    currentFeelsLike / minFeelsLike / maxFeelsLike를 사용하면 됨
+            // 추천 문장 생성
             String rec = recommendationService.getRecommendation(weatherDto);
             weatherDto.setRecommendText(rec);
 
